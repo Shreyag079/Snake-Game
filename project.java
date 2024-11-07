@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-// Base class for all game objects
+
 class GameObject {
     protected int x, y;
     protected int size;
@@ -25,32 +25,34 @@ class GameObject {
     }
 }
 
-// Movable interface for objects that can move
+
 interface Movable {
     void move();
 }
 
-// Custom exception for game over scenarios
+
 class GameOverException extends Exception {
     public GameOverException(String message) {
         super(message);
     }
 }
 
-// Class representing the Snake
+
 class Snake extends GameObject implements Movable {
     private List<Point> body;
     private String direction;
+    private boolean growing;
 
     public Snake(int x, int y) {
-        super(x, y, 10);
+        super(x, y, 20);
         body = new ArrayList<>();
         body.add(new Point(x, y));
-        direction = "RIGHT"; // Start by moving right
+        direction = "RIGHT"; 
+        growing = false;
     }
 
     public void setDirection(String newDirection) {
-        // Basic validation to prevent the snake from reversing direction
+        
         if (!((direction.equals("UP") && newDirection.equals("DOWN")) ||
                 (direction.equals("DOWN") && newDirection.equals("UP")) ||
                 (direction.equals("LEFT") && newDirection.equals("RIGHT")) ||
@@ -59,7 +61,7 @@ class Snake extends GameObject implements Movable {
         }
     }
 
-    @Override
+    
     public void move() {
         Point head = body.get(0);
         Point newHead = new Point(head.x, head.y);
@@ -80,12 +82,17 @@ class Snake extends GameObject implements Movable {
         }
 
         body.add(0, newHead);
-        body.remove(body.size() - 1); // Remove the tail
+
+        
+        if (!growing) {
+            body.remove(body.size() - 1);
+        } else {
+            growing = false;
+        }
     }
 
     public void grow() {
-        Point tail = body.get(body.size() - 1);
-        body.add(new Point(tail.x, tail.y)); // Duplicate the last segment
+        growing = true; 
     }
 
     public List<Point> getBody() {
@@ -93,11 +100,14 @@ class Snake extends GameObject implements Movable {
     }
 
     public void draw(Graphics g) {
-        g.setColor(Color.GREEN);
-        for (Point point : body) {
-            g.fillRect(point.x, point.y, size, size);
+        Graphics2D g2d = (Graphics2D) g;
+        for (int i = 0; i < body.size(); i++) {
+            Point point = body.get(i);
+            g2d.setColor(i == 0 ? Color.YELLOW : Color.GREEN);  
+            g2d.fillOval(point.x, point.y, size, size); 
         }
     }
+    
 
     public boolean collidesWithItself() {
         Point head = body.get(0);
@@ -110,28 +120,30 @@ class Snake extends GameObject implements Movable {
     }
 }
 
-// Class representing the Food
+
 class Food extends GameObject {
     public Food(int x, int y) {
-        super(x, y, 10);
+        super(x, y, 20);
     }
 
     public void draw(Graphics g) {
-        g.setColor(Color.RED);
-        g.fillRect(x, y, size, size);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(new Color(255, 69, 0)); 
+        g2d.fillOval(x, y, size, size); 
     }
 }
 
-// Class for the main game logic
+
 class Game {
     private Snake snake;
     private List<Food> foods;
     private Random random;
     private int score;
     private int screenWidth, screenHeight;
+    
 
     public Game(int screenWidth, int screenHeight) {
-        snake = new Snake(50, 50);
+        snake = new Snake(100, 100);
         foods = new ArrayList<>();
         random = new Random();
         score = 0;
@@ -141,29 +153,29 @@ class Game {
     }
 
     public void spawnFood() {
-        int x = random.nextInt(screenWidth / 10) * 10;
-        int y = random.nextInt(screenHeight / 10) * 10;
+        int x = random.nextInt(screenWidth / 20) * 20;
+        int y = random.nextInt(screenHeight / 20) * 20;
         foods.add(new Food(x, y));
     }
 
     public void update() throws GameOverException {
         snake.move();
 
-        // Check for food collision
+        
         Food foodToRemove = null;
         for (Food food : foods) {
             if (snake.getBody().get(0).x == food.getX() && snake.getBody().get(0).y == food.getY()) {
-                snake.grow();
+                snake.grow(); 
                 score += 10;
                 foodToRemove = food;
-                spawnFood(); // Spawn new food
+                spawnFood();
                 break;
             }
         }
         if (foodToRemove != null)
             foods.remove(foodToRemove);
 
-        // Check for self-collision and boundary collision
+        
         if (snake.collidesWithItself() || snake.getBody().get(0).x < 0 || snake.getBody().get(0).y < 0 ||
                 snake.getBody().get(0).x >= screenWidth || snake.getBody().get(0).y >= screenHeight) {
             throw new GameOverException("Game Over! Score: " + score);
@@ -180,17 +192,21 @@ class Game {
     public Snake getSnake() {
         return snake;
     }
+
+    public int getScore() {
+        return score;
+    }
 }
 
-// Main class to run the game
-public class SnakeGame extends JFrame implements ActionListener {
+
+public class project extends JFrame implements ActionListener {
     private Game game;
     private Timer timer;
     private GamePanel gamePanel;
     private int screenWidth, screenHeight;
 
-    public SnakeGame() {
-        // Get screen size for full screen mode
+    public project() {
+       
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         screenWidth = screenSize.width;
         screenHeight = screenSize.height;
@@ -204,12 +220,12 @@ public class SnakeGame extends JFrame implements ActionListener {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setVisible(true);
         setResizable(false);
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximize the window
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         timer = new Timer(100, this);
         timer.start();
 
-        // Key listener for snake movement
+        
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 switch (e.getKeyCode()) {
@@ -230,7 +246,7 @@ public class SnakeGame extends JFrame implements ActionListener {
         });
     }
 
-    @Override
+   
     public void actionPerformed(ActionEvent e) {
         try {
             game.update();
@@ -241,7 +257,7 @@ public class SnakeGame extends JFrame implements ActionListener {
         }
     }
 
-    // Method to show custom Game Over dialog with OK and Restart buttons
+    
     private void showGameOverDialog(String message) {
         String[] options = {"OK", "Restart Game"};
         int choice = JOptionPane.showOptionDialog(
@@ -255,29 +271,43 @@ public class SnakeGame extends JFrame implements ActionListener {
                 options[0]
         );
 
-        if (choice == 1) { // If 'Restart Game' is selected
+        if (choice == 1) { 
             restartGame();
-        } else { // If 'OK' is selected or dialog is closed
-            System.exit(0); // Close the game
+        } else { 
+            System.exit(0); 
         }
     }
 
-    // Method to restart the game
+ 
     private void restartGame() {
-        game = new Game(screenWidth, screenHeight); // Reinitialize the game
-        timer.start();     // Start the timer again
+        game = new Game(screenWidth, screenHeight);
+        timer.start();   
     }
 
-    // Panel for rendering the game
-    class GamePanel extends JPanel {
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            game.draw(g);
-        }
+ 
+   class GamePanel extends JPanel {
+  
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        Graphics2D g2d = (Graphics2D) g;
+        Color color1 = new Color(25, 25, 112); 
+        Color color2 = new Color(0, 0, 139); 
+        g2d.setPaint(new GradientPaint(0, 0, color1, getWidth(), getHeight(), color2));
+        g2d.fillRect(0, 0, getWidth(), getHeight());
+
+       
+        game.draw(g);
+
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+        g.drawString("Score: " + game.getScore(), 10, 30);
     }
+}
+
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(SnakeGame::new);
+        SwingUtilities.invokeLater(project::new);
     }
 }
